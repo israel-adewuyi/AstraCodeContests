@@ -2,7 +2,9 @@ import json
 import logging
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
-from utils import generate_hash
+from utils import generate_hash, extract_text_after_think, get_inputs, extract_python_code
+from server.server import send_requests
+from prompt import PRIVATE_TESTS_SYS_PROMPT
 
 @dataclass
 class TestCase:
@@ -13,6 +15,7 @@ class TestCase:
 @dataclass
 class PrivateTestSuite:
     test_cases: List[TestCase]
+    response: str
     generation_prompt: str
     model_used: str
 
@@ -25,47 +28,44 @@ class Problem:
             setattr(self, key, value)
 
         self.key = generate_hash(f"{self.contest_id}-{self.problem_id}")
-        self.private_tests: Optional[PrivateTestSuite] = None
+        # self.private_tests: Optional[PrivateTestSuite] = None
         self.sample_tests: List[TestCase] = []
 
         # Parse examples if provided
-        if hasattr(self, 'examples'):
-            self._parse_examples()
+        # if hasattr(self, 'examples'):
+        #     self._parse_examples()
 
         self.logger = logging.getLogger(__name__)
 
-    def _parse_examples(self):
-        """Parse sample test cases from examples"""
-        # This is a simplified parser - you'll need to implement based on your format
-        if isinstance(self.examples, str):
-            # Parse examples string into TestCase objects
-            # This is placeholder logic
-            self.sample_tests = [
-                TestCase("sample_input_1", "sample_output_1"),
-                TestCase("sample_input_2", "sample_output_2")
-            ]
+    # def _parse_examples(self):
+    #     """Parse sample test cases from examples"""
+    #     # This is a simplified parser - you'll need to implement based on your format
+    #     if isinstance(self.examples, str):
+    #         # Parse examples string into TestCase objects
+    #         # This is placeholder logic
+    #         self.sample_tests = [
+    #             TestCase("sample_input_1", "sample_output_1"),
+    #             TestCase("sample_input_2", "sample_output_2")
+    #         ]
 
-    def generate_private_tests(self, model_client=None):
-        """Generate private test suite using the bigger model"""
-        if self.private_tests:
-            self.logger.info(f"Private tests already exist for problem {self.key}")
-            return self.private_tests
-
+    def generate_private_tests(self, tokenizer):
+        """Generate private test suite using the bigger model"""     
+        # if self.private_tests is None:
+        #     print("Got to private, not sure hrere, man")
+        #     self.logger.info(f"Private tests already exist for problem {self.key}")
+        #     return self.private_tests
+        
         self.logger.info(f"Generating private tests for problem {self.key}")
-
+        
         # Construct prompt for test generation
         prompt = self._build_test_generation_prompt()
-
-        if model_client:
-            # Use the provided model client to generate tests
-            response = model_client.generate(prompt)
-            test_cases = self._parse_test_generation_response(response)
-        else:
-            # Fallback to dummy tests for development
-            test_cases = self._generate_dummy_tests()
-
+        response = send_requests(prompt)
+        # print(response)
+        test_cases = self._parse_test_generation_response(response['content'])
+        
         self.private_tests = PrivateTestSuite(
             test_cases=test_cases,
+            response=response,
             generation_prompt=prompt,
             model_used="test_generation_model"
         )
@@ -73,14 +73,14 @@ class Problem:
         self.logger.info(f"Generated {len(test_cases)} private test cases")
         return self.private_tests
 
-    def _build_test_generation_prompt(self) -> str:
+    def _build_test_generation_prompt(self) -> dict:
         """Build prompt for test case generation"""
-        return f"""
+
+        prompt = f"""
         Generate comprehensive test cases for the following competitive programming problem:
         
         Problem Statement: {self.statement}
         Input Specification: {self.input_specification}
-        Output Specification: {self.output_specification}
         
         Generate 10-15 diverse test cases including:
         - Edge cases
@@ -90,25 +90,40 @@ class Problem:
         
         Format each test case as:
         INPUT:
-        <input_data>
-        EXPECTED_OUTPUT:
-        <expected_output>
+        <input test case>
+
+        Example
+        INPUT:
+        5
+        3 1 4 1 5
+        4
         """
+        
+        data = {
+            "model": "Qwen/Qwen3-1.7B",
+            "messages": [
+                {"role": "system", "content": PRIVATE_TESTS_SYS_PROMPT},
+                {"role": "user", "content": prompt}
+            ]
+        }
+        
+        return data
 
     def _parse_test_generation_response(self, response: str) -> List[TestCase]:
         """Parse model response into TestCase objects"""
         # Implement parsing logic based on your model's output format
-        test_cases = []
+        response = extract_text_after_think(response)
         # Parse response and create TestCase objects
+        test_cases = get_inputs(response)[:5]
         return test_cases
 
-    def _generate_dummy_tests(self) -> List[TestCase]:
-        """Generate dummy test cases for development"""
-        return [
-            TestCase("1 2", "3", "Simple addition"),
-            TestCase("1000000 1000000", "2000000", "Large numbers"),
-            TestCase("0 0", "0", "Zero case")
-        ]
+    # def _generate_dummy_tests(self) -> List[TestCase]:
+    #     """Generate dummy test cases for development"""
+    #     return [
+    #         TestCase("1 2", "3", "Simple addition"),
+    #         TestCase("1000000 1000000", "2000000", "Large numbers"),
+    #         TestCase("0 0", "0", "Zero case")
+    #     ]
 
     def get_sample_tests(self) -> List[TestCase]:
         """Get sample test cases"""

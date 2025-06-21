@@ -10,6 +10,8 @@ from execution_engine import ExecutionEngine
 from clustering_selector import ClusteringSelector
 from feedback_handler import FeedbackHandler
 
+from transformers import AutoTokenizer
+
 class ContestStatus(Enum):
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
@@ -19,7 +21,7 @@ class ContestStatus(Enum):
 @dataclass
 class ContestConfig:
     contest_id: int
-    num_solutions_per_problem: int = 10
+    num_solutions_per_problem: int = 5
     max_retries: int = 3
     timeout_seconds: int = 30
     memory_limit_mb: int = 512
@@ -42,6 +44,7 @@ class ContestManager:
         )
         self.clustering_selector = ClusteringSelector()
         self.feedback_handler = FeedbackHandler()
+        self.tokenizer = AutoTokenizer.from_pretrained("Qwen/Qwen3-1.7B")
 
         # Setup logging
         logging.basicConfig(level=logging.INFO)
@@ -66,43 +69,50 @@ class ContestManager:
         try:
             # Step 1: Generate private test suite if not exists
             if not hasattr(problem, 'private_tests'):
-                problem.generate_private_tests()
+                private_tests = problem.generate_private_tests(self.tokenizer)
+                # self.logger.info(private_tests)
+                # print(f"Private tests, {problem.generate_private_tests(self.tokenizer)}") #TODO: Remove print
 
-            # Step 2: Generate N solutions
+            # # Step 2: Generate N solutions
             solutions = self.solution_generator.generate(
                 problem,
                 num_solutions=self.config.num_solutions_per_problem
             )
 
-            # Step 3: Execute solutions on sample test cases
+            # for sol in solutions:
+            #     print(sol, "\n\n")
+
+            # print(solution)
+
+            # # Step 3: Execute solutions on sample test cases
             valid_solutions = self.execution_engine.filter_on_samples(
                 problem, solutions
             )
 
-            if not valid_solutions:
-                self.logger.warning(f"No valid solutions for problem {problem_key}")
-                return {"status": "failed", "reason": "no_valid_solutions"}
+            # if not valid_solutions:
+            #     self.logger.warning(f"No valid solutions for problem {problem_key}")
+            #     return {"status": "failed", "reason": "no_valid_solutions"}
 
-            # Step 4: Execute on private test suite
-            private_results = self.execution_engine.run_on_private_tests(
-                problem, valid_solutions
-            )
+            # # Step 4: Execute on private test suite
+            # private_results = self.execution_engine.run_on_private_tests(
+            #     problem, valid_solutions
+            # )
 
-            # Step 5: Cluster and select best solution
-            selected_solution = self.clustering_selector.select_best(
-                private_results
-            )
+            # # Step 5: Cluster and select best solution
+            # selected_solution = self.clustering_selector.select_best(
+            #     private_results
+            # )
 
-            self.selected_solutions[problem_key] = selected_solution
-            self.solutions[problem_key] = solutions
+            # self.selected_solutions[problem_key] = selected_solution
+            # self.solutions[problem_key] = solutions
 
-            self.logger.info(f"Successfully solved problem {problem_key}")
-            return {
-                "status": "success",
-                "selected_solution": selected_solution,
-                "total_solutions": len(solutions),
-                "valid_solutions": len(valid_solutions)
-            }
+            # self.logger.info(f"Successfully solved problem {problem_key}")
+            # return {
+            #     "status": "success",
+            #     "selected_solution": selected_solution,
+            #     "total_solutions": len(solutions),
+            #     "valid_solutions": len(valid_solutions)
+            # }
 
         except Exception as e:
             self.logger.error(f"Error solving problem {problem_key}: {str(e)}")
@@ -150,16 +160,25 @@ class ContestManager:
 
 if __name__ == "__main__":
     # Example usage
-    config = ContestConfig(contest_id=2352)
+    config = ContestConfig(contest_id=410)
     manager = ContestManager(config)
 
     problem_data = {
-        "statement": "This is a dummy statement",
-        "input_specification": "This is a dummy input spec",
-        "output_specification": "This is a dummy output spec",
-        "contest_id": 2352,
+        "statement": """In AtCoder Kingdom, there are N horse races being held. Horses aged A_i or younger can participate in the i-th race.
+Among the N races, how many races can a K-year-old horse participate in?""",
+        "input_specification": """The input is given from Standard Input in the following format:
+        N
+        A_1, A_2,  … A_N
+        K
+        All input values are integers.
+        1≤N≤100
+        1≤A_i≤100
+        1≤K≤100
+        """,
+        "output_specification": "Output the answer as an integer.",
+        "contest_id": 410,
         "problem_id": "A",
-        "examples": "These are examples"
+        "examples": """{"input" : 5 3 1 4 1 5 4, "output" : 2}"""
     }
 
     problem_key = manager.add_problem(problem_data)

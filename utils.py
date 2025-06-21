@@ -1,5 +1,5 @@
 """Enhanced utilities for the CP solution system"""
-
+import re
 import hashlib
 import json
 import logging
@@ -56,6 +56,49 @@ def format_execution_time(seconds: float) -> str:
         remaining_seconds = seconds % 60
         return f"{minutes}m {remaining_seconds:.2f}s"
 
-# Usage
-# input_str = "This is a test string."
-# print(generate_hash(input_str))
+def get_inputs(text: str):
+    # Split the text by "INPUT:" (case-sensitive)
+    parts = text.split("INPUT:")
+    
+    # Remove any leading/trailing whitespace and filter out empty strings
+    input_blocks = [block.strip() for block in parts[1:] if block.strip()]
+    
+    return input_blocks
+
+def extract_text_after_think(text):
+    """
+    Extracts the text after the thinking token.
+    
+    Parameters:
+    text (str): The input string containing the 'Thinking' token.
+    
+    Returns:
+    str: The part of the text after <think>, or an empty string if not found.
+    """
+    # Split the text at 'Thinking'
+    parts = text.split("</think>", 1)
+    
+    # Return the part after 'Thinking' if it exists, else return an empty string
+    if len(parts) > 1:
+        return parts[1].strip()
+    else:
+        return ""
+
+def extract_python_code(text):
+    """
+    Extracts the first Python code snippet from the given text.
+    
+    Parameters:
+        text (str): The input string containing potential Python code snippets.
+    
+    Returns:
+        str: The extracted Python code, or None if no match is found.
+    """
+    # Use regular expression to find the first Python code block
+    match = re.search(r'```python(.*?)```', text, re.DOTALL)
+    
+    # If a match is found, return the code with leading/trailing whitespace stripped
+    if match:
+        return match.group(1).strip()
+    else:
+        return None

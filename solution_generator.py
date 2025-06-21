@@ -5,14 +5,15 @@ import time
 from typing import List, Dict, Optional, Any
 from dataclasses import dataclass
 import uuid
+from server.server import send_requests
+from utils import extract_python_code
 
 @dataclass
 class Solution:
     id: str
     code: str
-    language: str
     prompt_used: str
-    generation_time: float
+    generation: str
     model_used: str
     metadata: Dict[str, Any]
 
@@ -24,55 +25,32 @@ class SolutionGenerator:
         self.max_retries = max_retries
         self.logger = logging.getLogger(__name__)
 
-    def generate(self, problem, num_solutions: int = 10, 
-                feedback: Optional[Dict] = None) -> List[Solution]:
+    def generate(self, problem, feedback: Optional[str] = None, num_solutions: int = 5) -> List[Solution]:
         """Generate N solutions for a problem"""
         self.logger.info(f"Generating {num_solutions} solutions for problem {problem.key}")
-
-        solutions = []
-        for i in range(num_solutions):
-            try:
-                solution = self._generate_single_solution(problem, feedback, attempt=i+1)
-                if solution:
-                    solutions.append(solution)
-            except Exception as e:
-                self.logger.error(f"Failed to generate solution {i+1}: {str(e)}")
-
-        self.logger.info(f"Successfully generated {len(solutions)} solutions")
-        return solutions
-
-    def _generate_single_solution(self, problem, feedback: Optional[Dict], 
-                                 attempt: int) -> Optional[Solution]:
-        """Generate a single solution"""
-        start_time = time.time()
-
+        
         # Build prompt based on problem and feedback
-        prompt = self._build_solution_prompt(problem, feedback, attempt)
+        prompt = self._build_solution_prompt(problem, feedback, num_solutions)
+        responses = send_requests(prompt)
 
-        # Generate solution using model
-        if self.model_client:
-            response = self._call_model(prompt)
-        else:
-            # Fallback for development
-            response = self._generate_dummy_solution(problem, attempt)
+        code_snippets = [extract_python_code(res['message']['content']) for res in responses]
+        print(f"Solution is \n {code_snippets}")
 
-        if not response:
-            return None
+        list_of_solution = [
+            Solution(
+                id=str(uuid.uuid4()),
+                code=code,
+                prompt_used=prompt,
+                generation=res['message']['content'],
+                model_used=res.get("model", "solution_model"),
+                metadata=res.get("metadata", {})
+            ) for code, res in zip(code_snippets, responses)
+        ]
 
-        generation_time = time.time() - start_time
-
-        return Solution(
-            id=str(uuid.uuid4()),
-            code=response["code"],
-            language=response.get("language", "python"),
-            prompt_used=prompt,
-            generation_time=generation_time,
-            model_used=response.get("model", "solution_model"),
-            metadata=response.get("metadata", {})
-        )
+        return list_of_solution
 
     def _build_solution_prompt(self, problem, feedback: Optional[Dict], 
-                              attempt: int) -> str:
+                              num_solutions: int) -> str:
         """Build prompt for solution generation"""
         base_prompt = f"""
         Solve the following competitive programming problem:
@@ -96,10 +74,16 @@ class SolutionGenerator:
             Please provide a corrected solution that addresses this issue.
             """
 
-        if attempt > 1:
-            base_prompt += f"\n\nThis is attempt {attempt}. Please try a different approach."
+        data = {
+            "model": "Qwen/Qwen3-1.7B",
+            "messages": [
+                {"role": "system", "content": "You are a helpful AI assistant"},
+                {"role": "user", "content": base_prompt}
+            ],
+            "n": num_solutions
+        }
 
-        return base_prompt
+        return data
 
     def _format_sample_tests(self, problem) -> str:
         """Format sample tests for prompt"""
