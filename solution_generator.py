@@ -91,8 +91,7 @@ class SolutionGenerator:
         for i, test in enumerate(problem.get_sample_tests(), 1):
             formatted += f"""
             Test Case {i}:
-            Input: {test.input_data}
-            Expected Output: {test.expected_output}
+            {test}
             """
         return formatted
 
