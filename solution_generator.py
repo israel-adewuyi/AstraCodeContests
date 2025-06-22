@@ -11,10 +11,8 @@ from utils import extract_python_code
 @dataclass
 class Solution:
     id: str
-    code: str
-    prompt_used: str
+    prompt: str
     generation: str
-    model_used: str
     metadata: Dict[str, Any]
 
 class SolutionGenerator:
@@ -34,15 +32,12 @@ class SolutionGenerator:
         responses = send_requests(prompt)
 
         code_snippets = [extract_python_code(res['message']['content']) for res in responses]
-        print(f"Solution is \n {code_snippets}")
 
         list_of_solution = [
             Solution(
                 id=str(uuid.uuid4()),
-                code=code,
-                prompt_used=prompt,
+                prompt=prompt,
                 generation=res['message']['content'],
-                model_used=res.get("model", "solution_model"),
                 metadata=res.get("metadata", {})
             ) for code, res in zip(code_snippets, responses)
         ]
