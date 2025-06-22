@@ -6,6 +6,7 @@ import time
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass
 from enum import Enum
+from sandbox_fusion import compute_score
 
 class ExecutionStatus(Enum):
     SUCCESS = "success"
@@ -41,8 +42,16 @@ class ExecutionEngine:
         sample_tests = problem.get_sample_tests()
 
         for solution in solutions:
-            if self._passes_all_samples(solution, sample_tests):
-                valid_solutions.append(solution)
+            score = compute_score(
+                    sandbox_fusion_url="http://localhost:8080/run_code",
+                    concurrent_semaphore=None,
+                    completion=solution.generation,
+                    test_cases=sample_tests,
+            )
+            print(score)
+            valid_solutions.append(score)
+            # if self._passes_all_samples(solution, sample_tests):
+            #     valid_solutions.append(solution)
 
         self.logger.info(f"{len(valid_solutions)} solutions passed sample tests")
         return valid_solutions
