@@ -16,8 +16,6 @@ class TestCase:
 class PrivateTestSuite:
     test_cases: List[TestCase]
     response: str
-    generation_prompt: str
-    model_used: str
 
 class Problem:
     """Represents a CP problem with enhanced functionality"""
@@ -60,14 +58,12 @@ class Problem:
         # Construct prompt for test generation
         prompt = self._build_test_generation_prompt()
         response = send_requests(prompt)
-        # print(response)
-        test_cases = self._parse_test_generation_response(response['content'])
+        # self.logger.info(f"Response is {response}")
+        test_cases = self._parse_test_generation_response(response[0]['message']['content'])
         
         self.private_tests = PrivateTestSuite(
             test_cases=test_cases,
             response=response,
-            generation_prompt=prompt,
-            model_used="test_generation_model"
         )
 
         self.logger.info(f"Generated {len(test_cases)} private test cases")
@@ -115,6 +111,7 @@ class Problem:
         response = extract_text_after_think(response)
         # Parse response and create TestCase objects
         test_cases = get_inputs(response)[:5]
+        self.logger.info(f"Test cases are {test_cases}")
         return test_cases
 
     # def _generate_dummy_tests(self) -> List[TestCase]:
@@ -127,7 +124,7 @@ class Problem:
 
     def get_sample_tests(self) -> List[TestCase]:
         """Get sample test cases"""
-        return self.sample_tests
+        return self.examples
 
     def get_private_tests(self) -> Optional[PrivateTestSuite]:
         """Get private test suite"""

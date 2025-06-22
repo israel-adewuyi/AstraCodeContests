@@ -70,8 +70,6 @@ class ContestManager:
             # Step 1: Generate private test suite if not exists
             if not hasattr(problem, 'private_tests'):
                 private_tests = problem.generate_private_tests(self.tokenizer)
-                # self.logger.info(private_tests)
-                # print(f"Private tests, {problem.generate_private_tests(self.tokenizer)}") #TODO: Remove print
 
             # # Step 2: Generate N solutions
             solutions = self.solution_generator.generate(
@@ -79,13 +77,10 @@ class ContestManager:
                 num_solutions=self.config.num_solutions_per_problem
             )
 
-            # for sol in solutions:
-            #     print(sol, "\n\n")
+            self.logger.info("Solutions have been generated")
 
-            # print(solution)
-
-            # # Step 3: Execute solutions on sample test cases
-            valid_solutions = self.execution_engine.filter_on_samples(
+            # Step 3: Execute solutions on sample test cases
+            valid_solutions = self.execution_engine.run_on_sample_tests(
                 problem, solutions
             )
 
@@ -93,18 +88,20 @@ class ContestManager:
             #     self.logger.warning(f"No valid solutions for problem {problem_key}")
             #     return {"status": "failed", "reason": "no_valid_solutions"}
 
-            # # Step 4: Execute on private test suite
-            # private_results = self.execution_engine.run_on_private_tests(
-            #     problem, valid_solutions
-            # )
+            # Step 4: Execute on private test suite
+            private_results = self.execution_engine.run_on_private_tests(
+                problem, valid_solutions
+            )
 
             # # Step 5: Cluster and select best solution
-            # selected_solution = self.clustering_selector.select_best(
-            #     private_results
-            # )
+            selected_solution = self.clustering_selector.select_best(
+                private_results
+            )
 
-            # self.selected_solutions[problem_key] = selected_solution
-            # self.solutions[problem_key] = solutions
+            print(selected_solution)
+
+            self.selected_solutions[problem_key] = selected_solution
+            self.solutions[problem_key] = solutions
 
             # self.logger.info(f"Successfully solved problem {problem_key}")
             # return {
@@ -178,7 +175,7 @@ Among the N races, how many races can a K-year-old horse participate in?""",
         "output_specification": "Output the answer as an integer.",
         "contest_id": 410,
         "problem_id": "A",
-        "examples": """{"input" : 5 3 1 4 1 5 4, "output" : 2}"""
+        "examples": [{"input" : ["5\n3 1 4 1 5\n4"], "output" : ["2"]}]
     }
 
     problem_key = manager.add_problem(problem_data)

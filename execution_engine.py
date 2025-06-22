@@ -34,25 +34,24 @@ class ExecutionEngine:
         self.memory_limit_mb = memory_limit_mb
         self.logger = logging.getLogger(__name__)
 
-    def filter_on_samples(self, problem, solutions: List) -> List:
+    def run_on_sample_tests(self, problem, solutions: List) -> List:
         """Filter solutions by running them on sample test cases"""
         self.logger.info(f"Filtering {len(solutions)} solutions on sample tests")
 
-        valid_solutions = []
+        execution_feedback = []
         sample_tests = problem.get_sample_tests()
 
         for solution in solutions:
-            score = compute_score(
+            exec_feedback = compute_score(
                     sandbox_fusion_url="http://localhost:8080/run_code",
                     concurrent_semaphore=None,
                     completion=solution.generation,
                     test_cases=sample_tests,
             )
-            print(score)
-            valid_solutions.append(score)
-            # if self._passes_all_samples(solution, sample_tests):
-            #     valid_solutions.append(solution)
-
+            execution_feedback.append(exec_feedback)
+            
+        valid_solutions = self.filter(solutions, execution_feedback)
+        # self.logger.info(f"Valid solutions are {valid_solutions}")
         self.logger.info(f"{len(valid_solutions)} solutions passed sample tests")
         return valid_solutions
 
@@ -64,14 +63,32 @@ class ExecutionEngine:
         if not private_tests:
             raise ValueError("Private tests not generated")
 
+        self.logger.info(f"Private tests are {private_tests.test_cases}")
+
+        outputs = self._dummy_output_cases(private_tests.test_cases)
+
+        self.logger.info(f"Outputs are {outputs}")
+
+        test_cases = self._format_test_cases(private_tests.test_cases, outputs)
+
+        self.logger.info(f"test_cases are are {test_cases}")
+
         results = {}
         for solution in solutions:
-            solution_results = []
-            for test_case in private_tests.test_cases:
-                result = self._execute_solution(solution, test_case.input_data)
-                solution_results.append(result)
-            results[solution.id] = solution_results
+            exec_feedback = compute_score(
+                    sandbox_fusion_url="http://localhost:8080/run_code",
+                    concurrent_semaphore=None,
+                    completion=solution.generation,
+                    test_cases=test_cases,
+            )
+            res_string = self._parse_feedback_from_private_run(exec_feedback)
+            
+            # self.logger.info(f"Exec feedback is {exec_feedback}")
+            # self.logger.info(f"String result is {res_string}\n\n")
 
+            results[solution.id] = res_string
+
+        print(results)
         return results
   
     def _passes_all_samples(self, solution, sample_tests) -> bool:
@@ -86,6 +103,25 @@ class ExecutionEngine:
                 return False
         
         return True
+
+    def filter(self, solutions, execution_feedback):
+        return [sol for exec, sol in zip(execution_feedback, solutions) if exec['score'] == 1.0 ]
+
+    def _dummy_output_cases(self, test_cases):
+        return [None for _ in range(len(test_cases))]
+
+    def _format_test_cases(self, inputs: List[str], outputs: List[str]):
+        for input in inputs:
+            assert isinstance(input, str)
+
+        return [{"input" : inputs, "output" : outputs}]
+
+    def _parse_feedback_from_private_run(self, feedback):
+        res_string = ""
+        for temp_feedback in feedback['feedback']:
+            if temp_feedback['status'] == "wrong_answer":
+                res_string += temp_feedback['stdout'].strip()
+        return res_string
     
     def _execute_solution(self, solution, input_data: str) -> ExecutionResult:
         """Execute a single solution with given input"""

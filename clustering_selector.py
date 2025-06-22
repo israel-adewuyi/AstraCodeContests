@@ -22,11 +22,8 @@ class ClusteringSelector:
         """Select the best solution using clustering approach"""
         self.logger.info("Starting clustering and selection process")
         
-        # Extract outputs for each solution
-        solution_outputs = self._extract_solution_outputs(execution_results)
-        
         # Group solutions by output similarity
-        clusters = self._cluster_solutions(solution_outputs)
+        clusters = self._cluster_solutions(execution_results)
         
         # Find the largest cluster
         largest_cluster = max(clusters, key=lambda c: c.size)
@@ -45,23 +42,6 @@ class ClusteringSelector:
                 "representative_output": largest_cluster.representative_output
             }
         }
-    
-    def _extract_solution_outputs(self, execution_results: Dict[str, List]) -> Dict[str, List[str]]:
-        """Extract outputs for each solution across all test cases"""
-        solution_outputs = {}
-        
-        for solution_id, results in execution_results.items():
-            outputs = []
-            for result in results:
-                if result.status.value == "success":
-                    outputs.append(result.output)
-                else:
-                    # Use error status as output for failed executions
-                    outputs.append(f"ERROR_{result.status.value}")
-            
-            solution_outputs[solution_id] = outputs
-        
-        return solution_outputs
     
     def _cluster_solutions(self, solution_outputs: Dict[str, List[str]]) -> List[Cluster]:
         """Group solutions by output similarity"""
