@@ -41,13 +41,15 @@ data = {
 
 def send_requests(data: dict) -> str:
     response = requests.post(url, headers=headers, json=data, timeout=120)
+    # print(response)
+    # # print(response.json())
+    # print(dir(response))
+    # print(response.url)
     completion = response.json()
 
-    if data.get("n", None) is not None:
-        # print(f"Completions \n {completion}")
-        return completion['choices']
-    else:
-        return completion['choices'][0]['message']
+    
+    # return completion['choices'][0]['message']
+    return completion['choices']
 
 
 # print(send_requests(data))

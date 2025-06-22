@@ -1,0 +1,76 @@
+import streamlit as st
+import json
+from typing import Dict
+from dataclasses import asdict
+from contest_manager import ContestManager, ContestConfig, ContestStatus
+
+# Initialize session state for ContestManager
+if 'contest_manager' not in st.session_state:
+    config = ContestConfig(contest_id=410)
+    st.session_state.contest_manager = ContestManager(config)
+
+# Streamlit app
+st.title("Contest Manager Interface")
+
+# Create tabs for adding problems and viewing problems
+tab1, tab2 = st.tabs(["Add Problem", "View Problems"])
+
+with tab1:
+    st.header("Add New Problem")
+    with st.form("problem_form"):
+        statement = st.text_area("Problem Statement", height=150)
+        input_spec = st.text_area("Input Specification", height=100)
+        output_spec = st.text_area("Output Specification", height=100)
+        contest_id = st.number_input("Contest ID", min_value=1, value=410)
+        problem_id = st.text_input("Problem ID", value="A")
+        examples_input = st.text_area("Examples (JSON format)", 
+                                    value='[{"input": ["5\\n3 1 4 1 5\\n4"], "output": ["2"]}]')
+        
+        submitted = st.form_submit_button("Add Problem")
+        
+        if submitted:
+            try:
+                # Parse examples JSON
+                examples = json.loads(examples_input)
+                
+                problem_data = {
+                    "statement": statement,
+                    "input_specification": input_spec,
+                    "output_specification": output_spec,
+                    "contest_id": contest_id,
+                    "problem_id": problem_id,
+                    "examples": examples
+                }
+                
+                problem_key = st.session_state.contest_manager.add_problem(problem_data)
+                st.success(f"Problem {problem_key} added successfully!")
+                
+            except json.JSONDecodeError:
+                st.error("Invalid JSON format in examples")
+            except Exception as e:
+                st.error(f"Error adding problem: {str(e)}")
+
+with tab2:
+    st.header("Current Problems")
+    if st.session_state.contest_manager.problems:
+        for problem_key, problem in st.session_state.contest_manager.problems.items():
+            with st.expander(f"Problem {problem_key}"):
+                st.write(f"**Statement:** {problem.statement}")
+                st.write(f"**Input Specification:** {problem.input_specification}")
+                st.write(f"**Output Specification:** {problem.output_specification}")
+                st.write(f"**Contest ID:** {problem.contest_id}")
+                st.write(f"**Problem ID:** {problem.problem_id}")
+                st.write("**Examples:**")
+                st.json(problem.examples)
+                
+                if st.button(f"Solve Problem {problem_key}", key=f"solve_{problem_key}"):
+                    with st.spinner(f"Solving problem {problem_key}..."):
+                        result = st.session_state.contest_manager.solve_problem(problem_key)
+                        if isinstance(result, dict) and result.get("status") == "failed":
+                            st.error(f"Failed to solve problem {problem_key}: {result.get('reason')}")
+                        else:
+                            st.success(f"Problem {problem_key} solved successfully!")
+                            st.write("**Selected Solution:**")
+                            st.json(result)
+    else:
+        st.info("No problems added yet.")
