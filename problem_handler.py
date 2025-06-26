@@ -28,37 +28,15 @@ class Problem:
         self.key = generate_hash(f"{self.contest_id}-{self.problem_id}")
         # self.private_tests: Optional[PrivateTestSuite] = None
         self.sample_tests: List[TestCase] = []
-
-        # Parse examples if provided
-        # if hasattr(self, 'examples'):
-        #     self._parse_examples()
-
         self.logger = logging.getLogger(__name__)
 
-    # def _parse_examples(self):
-    #     """Parse sample test cases from examples"""
-    #     # This is a simplified parser - you'll need to implement based on your format
-    #     if isinstance(self.examples, str):
-    #         # Parse examples string into TestCase objects
-    #         # This is placeholder logic
-    #         self.sample_tests = [
-    #             TestCase("sample_input_1", "sample_output_1"),
-    #             TestCase("sample_input_2", "sample_output_2")
-    #         ]
-
     def generate_private_tests(self, tokenizer):
-        """Generate private test suite using the bigger model"""     
-        # if self.private_tests is None:
-        #     print("Got to private, not sure hrere, man")
-        #     self.logger.info(f"Private tests already exist for problem {self.key}")
-        #     return self.private_tests
-        
+        """Generate private test suite using the bigger model"""
         self.logger.info(f"Generating private tests for problem {self.key}")
         
         # Construct prompt for test generation
         prompt = self._build_test_generation_prompt()
         response = send_requests(prompt)
-        # self.logger.info(f"Response is {response}")
         test_cases = self._parse_test_generation_response(response[0]['message']['content'])
         
         self.private_tests = PrivateTestSuite(
@@ -107,20 +85,10 @@ class Problem:
 
     def _parse_test_generation_response(self, response: str) -> List[TestCase]:
         """Parse model response into TestCase objects"""
-        # Implement parsing logic based on your model's output format
         response = extract_text_after_think(response)
-        # Parse response and create TestCase objects
         test_cases = get_inputs(response)[:5]
         self.logger.info(f"Test cases are {test_cases}")
         return test_cases
-
-    # def _generate_dummy_tests(self) -> List[TestCase]:
-    #     """Generate dummy test cases for development"""
-    #     return [
-    #         TestCase("1 2", "3", "Simple addition"),
-    #         TestCase("1000000 1000000", "2000000", "Large numbers"),
-    #         TestCase("0 0", "0", "Zero case")
-    #     ]
 
     def get_sample_tests(self) -> List[TestCase]:
         """Get sample test cases"""
