@@ -70,6 +70,8 @@ class ContestManager:
             # Step 1: Generate private test suite if not exists
             if not hasattr(problem, 'private_tests'):
                 private_tests = problem.generate_private_tests(self.tokenizer)
+            else:
+                self.logger.info(f"Reusing previously generated private tests for problem {problem_key}")
 
             # # Step 2: Generate N solutions
             solutions = self.solution_generator.generate(
@@ -84,32 +86,36 @@ class ContestManager:
                 problem, solutions
             )
 
-            # if not valid_solutions:
-            #     self.logger.warning(f"No valid solutions for problem {problem_key}")
-            #     return {"status": "failed", "reason": "no_valid_solutions"}
+            if not valid_solutions:
+                self.logger.warning(f"No valid solutions for problem {problem_key}")
+                return {"status": "failed", "reason": "no_valid_solutions"}
 
             # Step 4: Execute on private test suite
             private_results = self.execution_engine.run_on_private_tests(
                 problem, valid_solutions
             )
+            
+            self.logger.info("Running solutions on private tests completed")
+            
+            solutions_dict = {sol.id: sol for sol in solutions}
 
             # # Step 5: Cluster and select best solution
             selected_solution = self.clustering_selector.select_best(
                 private_results
             )
-
-            print(selected_solution)
+            
+            selected_solution["generation"] = solutions_dict[selected_solution["selected_solution_id"]].generation
 
             self.selected_solutions[problem_key] = selected_solution
             self.solutions[problem_key] = solutions
 
-            # self.logger.info(f"Successfully solved problem {problem_key}")
-            # return {
-            #     "status": "success",
-            #     "selected_solution": selected_solution,
-            #     "total_solutions": len(solutions),
-            #     "valid_solutions": len(valid_solutions)
-            # }
+            self.logger.info(f"Successfully solved problem {problem_key}")
+            return {
+                "status": "success",
+                "selected_solution": selected_solution,
+                "total_solutions": len(solutions),
+                "valid_solutions": len(valid_solutions)
+            }
 
         except Exception as e:
             self.logger.error(f"Error solving problem {problem_key}: {str(e)}")

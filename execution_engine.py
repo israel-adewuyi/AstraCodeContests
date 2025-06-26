@@ -55,7 +55,7 @@ class ExecutionEngine:
         self.logger.info(f"{len(valid_solutions)} solutions passed sample tests")
         return valid_solutions
 
-    def run_on_private_tests(self, problem, solutions: List) -> Dict[str, List[ExecutionResult]]:
+    def run_on_private_tests(self, problem, solutions: List) -> Dict[str, str]:
         """Run solutions on private test suite"""
         self.logger.info(f"Running {len(solutions)} solutions on private tests")
 
@@ -63,15 +63,11 @@ class ExecutionEngine:
         if not private_tests:
             raise ValueError("Private tests not generated")
 
-        self.logger.info(f"Private tests are {private_tests.test_cases}")
-
         outputs = self._dummy_output_cases(private_tests.test_cases)
 
-        self.logger.info(f"Outputs are {outputs}")
+        assert outputs[0] is None, "Outputs array should be none"
 
         test_cases = self._format_test_cases(private_tests.test_cases, outputs)
-
-        self.logger.info(f"test_cases are are {test_cases}")
 
         results = {}
         for solution in solutions:
@@ -88,7 +84,7 @@ class ExecutionEngine:
 
             results[solution.id] = res_string
 
-        print(results)
+        print(f"Results are {results}")
         return results
   
     def _passes_all_samples(self, solution, sample_tests) -> bool:
