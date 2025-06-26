@@ -3,6 +3,7 @@ import json
 from typing import Dict
 from dataclasses import asdict
 from contest_manager import ContestManager, ContestConfig, ContestStatus
+from utils import extract_python_code
 
 # Initialize session state for ContestManager
 if 'contest_manager' not in st.session_state:
@@ -71,6 +72,31 @@ with tab2:
                         else:
                             st.success(f"Problem {problem_key} solved successfully!")
                             st.write("**Selected Solution:**")
-                            st.json(result)
+                            selected = result.get("selected_solution", {})
+                            solution_id = selected.get("selected_solution_id")
+                            code = extract_python_code(selected.get("generation", ""))
+                            if solution_id:
+                                st.write(f"**Solution ID:** `{solution_id}`")
+                            if code:
+                                st.code(code, language="python")
     else:
         st.info("No problems added yet.")
+        
+    if st.button("Solve All Problems Concurrently"):
+        st.session_state.contest_manager.solve_all_problems_concurrently()
+        st.success("Started solving all problems concurrently!")
+
+    progress = st.session_state.contest_manager.get_progress()
+    for problem_key, prog in progress.items():
+        st.write(f"Problem {problem_key}: {prog.get('status', 'pending')}")
+        if 'detail' in prog:
+            selected = prog['detail'].get('selected_solution', {}) if isinstance(prog['detail'], dict) else {}
+            solution_id = selected.get('selected_solution_id')
+            code = extract_python_code(selected.get('generation', ""))
+            if solution_id:
+                st.write(f"**Solution ID:** `{solution_id}`")
+            if code:
+                st.code(code, language="python")
+
+    if st.button("Refresh Progress"):
+        st.rerun()

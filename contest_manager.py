@@ -3,6 +3,9 @@ import logging
 from typing import Dict, List, Optional
 from dataclasses import dataclass, asdict
 from enum import Enum
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from progress_tracker import ProgressTracker
 
 from problem_handler import Problem
 from solution_generator import SolutionGenerator
@@ -50,6 +53,10 @@ class ContestManager:
         logging.basicConfig(level=logging.INFO)
         self.logger = logging.getLogger(__name__)
 
+        self.progress_tracker = ProgressTracker()
+        self.executor = ThreadPoolExecutor(max_workers=4)  # or configurable
+        self.futures = {}
+
     def add_problem(self, problem_data: Dict) -> str:
         """Add a new problem to the contest"""
         problem = Problem(**problem_data)
@@ -64,6 +71,8 @@ class ContestManager:
             raise ValueError(f"Problem {problem_key} not found")
 
         problem = self.problems[problem_key]
+        self.solutions[problem.key] = []
+        # self.progress_tracker.reset(problem_key)
         self.logger.info(f"Starting solution pipeline for problem {problem_key}")
 
         try:
@@ -160,6 +169,31 @@ class ContestManager:
         self.config = ContestConfig(**state["config"])
         self.status = ContestStatus(state["status"])
         # Reconstruct problems and other components...
+
+    def solve_problem_threaded(self, problem_key):
+        self.progress_tracker.update(problem_key, "started")
+        try:
+            self.progress_tracker.update(problem_key, "generating solutions")
+            # ... (insert checkpoints in the pipeline)
+            self.progress_tracker.reset()
+            result = self.solve_problem(problem_key)
+            self.progress_tracker.update(problem_key, "completed", detail=result)
+            return result
+        except Exception as e:
+            self.progress_tracker.update(problem_key, "failed", detail=str(e))
+            raise
+
+    def solve_all_problems_concurrently(self):
+        self.status = ContestStatus.IN_PROGRESS
+        self.futures = {}
+        for problem_key in self.problems:
+            future = self.executor.submit(self.solve_problem_threaded, problem_key)
+            self.futures[problem_key] = future
+
+    def get_progress(self, problem_key=None):
+        if problem_key:
+            return self.progress_tracker.get(problem_key)
+        return self.progress_tracker.all()
 
 if __name__ == "__main__":
     # Example usage
