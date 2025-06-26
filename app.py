@@ -54,31 +54,48 @@ with tab1:
 with tab2:
     st.header("Current Problems")
     if st.session_state.contest_manager.problems:
-        for problem_key, problem in st.session_state.contest_manager.problems.items():
-            with st.expander(f"Problem {problem_key}"):
-                st.write(f"**Statement:** {problem.statement}")
-                st.write(f"**Input Specification:** {problem.input_specification}")
-                st.write(f"**Output Specification:** {problem.output_specification}")
-                st.write(f"**Contest ID:** {problem.contest_id}")
-                st.write(f"**Problem ID:** {problem.problem_id}")
-                st.write("**Examples:**")
-                st.json(problem.examples)
-                
-                if st.button(f"Solve Problem {problem_key}", key=f"solve_{problem_key}"):
-                    with st.spinner(f"Solving problem {problem_key}..."):
-                        result = st.session_state.contest_manager.solve_problem(problem_key)
-                        if isinstance(result, dict) and result.get("status") == "failed":
-                            st.error(f"Failed to solve problem {problem_key}: {result.get('reason')}")
-                        else:
-                            st.success(f"Problem {problem_key} solved successfully!")
-                            st.write("**Selected Solution:**")
-                            selected = result.get("selected_solution", {})
-                            solution_id = selected.get("selected_solution_id")
-                            code = extract_python_code(selected.get("generation", ""))
-                            if solution_id:
-                                st.write(f"**Solution ID:** `{solution_id}`")
+        for problem_key, problem in list(st.session_state.contest_manager.problems.items()):
+            col1, col2 = st.columns([10, 1])
+            with col1:
+                with st.expander(f"Problem {problem_key}"):
+                    st.write(f"**Statement:** {problem.statement}")
+                    st.write(f"**Input Specification:** {problem.input_specification}")
+                    st.write(f"**Output Specification:** {problem.output_specification}")
+                    st.write(f"**Contest ID:** {problem.contest_id}")
+                    st.write(f"**Problem ID:** {problem.problem_id}")
+                    st.write("**Examples:**")
+                    st.json(problem.examples)
+                    
+                    if st.button(f"Solve Problem {problem_key}", key=f"solve_{problem_key}"):
+                        with st.spinner(f"Solving problem {problem_key}..."):
+                            result = st.session_state.contest_manager.solve_problem(problem_key)
+                            if isinstance(result, dict) and result.get("status") == "failed":
+                                st.error(f"Failed to solve problem {problem_key}: {result.get('reason')}")
+                            else:
+                                st.success(f"Problem {problem_key} solved successfully!")
+                                st.write("**Selected Solution:**")
+                                selected = result.get("selected_solution", {})
+                                solution_id = selected.get("selected_solution_id")
+                                code = extract_python_code(selected.get("generation", ""))
+                                if solution_id:
+                                    st.write(f"**Solution ID:** `{solution_id}`")
+                                if code:
+                                    st.code(code, language="python")
+                    if st.button(f"Show Solution {problem_key}", key=f"show_solution_{problem_key}"):
+                        selected_solution = st.session_state.contest_manager.selected_solutions.get(problem_key)
+                        if selected_solution and selected_solution.get("generation"):
+                            code = extract_python_code(selected_solution.get("generation", ""))
                             if code:
+                                st.write("**Selected Solution:**")
                                 st.code(code, language="python")
+                            else:
+                                st.info("No solutions yet.")
+                        else:
+                            st.info("No solutions yet.")
+            with col2:
+                if st.button("❌", key=f"delete_{problem_key}"):
+                    st.session_state.contest_manager.delete_problem(problem_key)
+                    st.rerun()
     else:
         st.info("No problems added yet.")
         
@@ -86,17 +103,32 @@ with tab2:
         st.session_state.contest_manager.solve_all_problems_concurrently()
         st.success("Started solving all problems concurrently!")
 
-    progress = st.session_state.contest_manager.get_progress()
-    for problem_key, prog in progress.items():
-        st.write(f"Problem {problem_key}: {prog.get('status', 'pending')}")
-        if 'detail' in prog:
-            selected = prog['detail'].get('selected_solution', {}) if isinstance(prog['detail'], dict) else {}
-            solution_id = selected.get('selected_solution_id')
-            code = extract_python_code(selected.get('generation', ""))
-            if solution_id:
-                st.write(f"**Solution ID:** `{solution_id}`")
-            if code:
-                st.code(code, language="python")
+    # progress = st.session_state.contest_manager.get_progress()
+    # for problem_key, prog in progress.items():
+    #     st.write(f"Problem {problem_key}: {prog.get('status', 'pending')}")
+    #     if 'detail' in prog:
+    #         selected = prog['detail'].get('selected_solution', {}) if isinstance(prog['detail'], dict) else {}
+    #         solution_id = selected.get('selected_solution_id')
+    #         code = extract_python_code(selected.get('generation', ""))
+    #         if solution_id:
+    #             st.write(f"**Solution ID:** `{solution_id}`")
+    #         if code:
+    #             st.code(code, language="python")
 
     if st.button("Refresh Progress"):
-        st.rerun()
+        # st.rerun()
+        progress = st.session_state.contest_manager.get_progress()
+        for problem_key, prog in progress.items():
+            st.write(f"Problem {problem_key}: {prog.get('status', 'pending')}")
+            if 'detail' in prog:
+                selected = prog['detail'].get('selected_solution', {}) if isinstance(prog['detail'], dict) else {}
+                solution_id = selected.get('selected_solution_id')
+                code = extract_python_code(selected.get('generation', ""))
+                if solution_id:
+                    st.write(f"**Solution ID:** `{solution_id}`")
+                if code:
+                    st.code(code, language="python")
+    
+    if st.button("Reset Solution"):
+        st.session_state.contest_manager.reset_solution()
+        

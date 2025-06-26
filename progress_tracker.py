@@ -19,7 +19,8 @@ class ProgressTracker:
     def reset(self, problem_key=None):
         with self._lock:
             if problem_key is not None:
-                self._progress[problem_key] = {}
+                if problem_key in self._progress:
+                    del self._progress[problem_key]
             else:
                 self._progress.clear()
 
