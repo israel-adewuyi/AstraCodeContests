@@ -24,7 +24,7 @@ class ContestStatus(Enum):
 @dataclass
 class ContestConfig:
     contest_id: int
-    num_solutions_per_problem: int = 5
+    num_solutions_per_problem: int = 512
     max_retries: int = 3
     timeout_seconds: int = 30
     memory_limit_mb: int = 512
@@ -77,10 +77,12 @@ class ContestManager:
 
         try:
             # Step 1: Generate private test suite if not exists
-            if not hasattr(problem, 'private_tests'):
+            if not hasattr(problem, 'private_tests') or (hasattr(problem, 'private_tests') and len(problem.get_private_tests().test_cases) == 0):
                 private_tests = problem.generate_private_tests(self.tokenizer)
             else:
                 self.logger.info(f"Reusing previously generated private tests for problem {problem_key}")
+                
+            assert len(private_tests.test_cases) > 0
 
             # # Step 2: Generate N solutions
             solutions = self.solution_generator.generate(
@@ -195,6 +197,29 @@ class ContestManager:
             return self.progress_tracker.get(problem_key)
         return self.progress_tracker.all()
 
+    def delete_problem(self, problem_key: str) -> bool:
+        """Delete a problem and its associated data from the contest."""
+        if problem_key in self.problems:
+            del self.problems[problem_key]
+            if problem_key in self.solutions:
+                del self.solutions[problem_key]
+            if problem_key in self.selected_solutions:
+                del self.selected_solutions[problem_key]
+            self.logger.info(f"Deleted problem {problem_key}")
+            return True
+        else:
+            self.logger.warning(f"Attempted to delete non-existent problem {problem_key}")
+            return False
+
+    def reset_solution(self):
+        for problem_key in self.problems:
+            if problem_key in self.solutions:
+                del self.solutions[problem_key]
+            if problem_key in self.selected_solutions:
+                del self.selected_solutions[problem_key]
+            self.logger.info(f"Deleted solutions for problem {problem_key}")
+            self.problems[problem_key].delete_private_case()
+        
 if __name__ == "__main__":
     # Example usage
     config = ContestConfig(contest_id=410)

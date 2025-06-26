@@ -96,23 +96,11 @@ class Problem:
 
     def get_private_tests(self) -> Optional[PrivateTestSuite]:
         """Get private test suite"""
-        return self.private_tests
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert problem to dictionary for serialization"""
-        return {
-            "key": self.key,
-            "contest_id": self.contest_id,
-            "problem_id": self.problem_id,
-            "statement": self.statement,
-            "input_specification": self.input_specification,
-            "output_specification": self.output_specification,
-            "examples": self.examples,
-            "sample_tests": [
-                {"input": tc.input_data, "output": tc.expected_output, 
-                 "description": tc.description}
-                for tc in self.sample_tests
-            ],
-            "has_private_tests": self.private_tests is not None
-        }
+        return self.private_tests 
     
+    def delete_private_case(self) -> None:
+        """Delete all the private test cases"""
+        if hasattr(self, "private_tests"):
+            del self.private_tests
+            self.logger.info(f"Deleted private tests for problem {self.key}")
+        self.logger.info(f"No private tests for problem {self.key}")
