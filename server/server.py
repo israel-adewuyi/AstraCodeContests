@@ -5,12 +5,6 @@ headers = {
     "Content-Type": "application/json",
     "Authorization": "Bearer token-abc123"
 }
-# data = {
-#     "model": "Qwen/Qwen3-1.7B",
-#     "messages": [
-#         {"role": "user", "content": "Hello!"}
-#     ]
-# }
 
 sys_prompt = """You are a helpful assistant. 
 You are presented with a competitive programming input format. 
@@ -35,20 +29,15 @@ data = {
     "messages": [
         {"role": "system", "content": sys_prompt},
         {"role": "user", "content": prompt}
-    ]
+    ],
+    "max_tokens": 1024,
 }
 
 
 def send_requests(data: dict) -> str:
-    response = requests.post(url, headers=headers, json=data, timeout=120)
-    # print(response)
-    # # print(response.json())
-    # print(dir(response))
-    # print(response.url)
+    response = requests.post(url, headers=headers, json=data, timeout=3600)
     completion = response.json()
-
-    
-    # return completion['choices'][0]['message']
+    # print(completion)
     return completion['choices']
 
 

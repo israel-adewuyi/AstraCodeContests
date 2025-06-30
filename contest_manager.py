@@ -24,10 +24,12 @@ class ContestStatus(Enum):
 @dataclass
 class ContestConfig:
     contest_id: int
+    model_name: str = "israel-adewuyi/Astracode_demo"
     num_solutions_per_problem: int = 512
     max_retries: int = 3
     timeout_seconds: int = 30
     memory_limit_mb: int = 512
+    port: int = 63455
 
 class ContestManager:
     """Manages the overall contest state and orchestrates the solution pipeline"""
@@ -40,7 +42,7 @@ class ContestManager:
         self.selected_solutions: Dict[str, Dict] = {}
 
         # Initialize components
-        self.solution_generator = SolutionGenerator()
+        self.solution_generator = SolutionGenerator(config.model_name, config.port)
         self.execution_engine = ExecutionEngine(
             timeout_seconds=config.timeout_seconds,
             memory_limit_mb=config.memory_limit_mb
@@ -90,43 +92,43 @@ class ContestManager:
                 num_solutions=self.config.num_solutions_per_problem
             )
 
-            self.logger.info("Solutions have been generated")
+            # self.logger.info("Solutions have been generated")
 
-            # Step 3: Execute solutions on sample test cases
-            valid_solutions = self.execution_engine.run_on_sample_tests(
-                problem, solutions
-            )
+            # # Step 3: Execute solutions on sample test cases
+            # valid_solutions = self.execution_engine.run_on_sample_tests(
+            #     problem, solutions
+            # )
 
-            if not valid_solutions:
-                self.logger.warning(f"No valid solutions for problem {problem_key}")
-                return {"status": "failed", "reason": "no_valid_solutions"}
+            # if not valid_solutions:
+            #     self.logger.warning(f"No valid solutions for problem {problem_key}")
+            #     return {"status": "failed", "reason": "no_valid_solutions"}
 
-            # Step 4: Execute on private test suite
-            private_results = self.execution_engine.run_on_private_tests(
-                problem, valid_solutions
-            )
+            # # Step 4: Execute on private test suite
+            # private_results = self.execution_engine.run_on_private_tests(
+            #     problem, valid_solutions
+            # )
             
-            self.logger.info("Running solutions on private tests completed")
+            # self.logger.info("Running solutions on private tests completed")
             
-            solutions_dict = {sol.id: sol for sol in solutions}
+            # solutions_dict = {sol.id: sol for sol in solutions}
 
-            # # Step 5: Cluster and select best solution
-            selected_solution = self.clustering_selector.select_best(
-                private_results
-            )
+            # # # Step 5: Cluster and select best solution
+            # selected_solution = self.clustering_selector.select_best(
+            #     private_results
+            # )
             
-            selected_solution["generation"] = solutions_dict[selected_solution["selected_solution_id"]].generation
+            # selected_solution["generation"] = solutions_dict[selected_solution["selected_solution_id"]].generation
 
-            self.selected_solutions[problem_key] = selected_solution
-            self.solutions[problem_key] = solutions
+            # self.selected_solutions[problem_key] = selected_solution
+            # self.solutions[problem_key] = solutions
 
-            self.logger.info(f"Successfully solved problem {problem_key}")
-            return {
-                "status": "success",
-                "selected_solution": selected_solution,
-                "total_solutions": len(solutions),
-                "valid_solutions": len(valid_solutions)
-            }
+            # self.logger.info(f"Successfully solved problem {problem_key}")
+            # return {
+            #     "status": "success",
+            #     "selected_solution": selected_solution,
+            #     "total_solutions": len(solutions),
+            #     "valid_solutions": len(valid_solutions)
+            # }
 
         except Exception as e:
             self.logger.error(f"Error solving problem {problem_key}: {str(e)}")
