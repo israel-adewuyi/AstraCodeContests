@@ -1,0 +1,62 @@
+# SGLang Installation Dependencies Summary
+# Ubuntu/Debian System Libraries Required for sglang[all]>=0.4.8.post1
+
+## Build Tools and Compilers
+- pkg-config          # Package configuration utility
+- cmake               # Cross-platform build system
+- build-essential     # Essential compilation tools (gcc, g++, make, etc.)
+
+## Rust Programming Language
+- rustc               # Rust compiler (updated to latest stable version)
+- cargo               # Rust package manager
+- rustup              # Rust toolchain installer (recommended installation method)
+
+## OpenSSL Development Libraries
+- libssl-dev          # OpenSSL development files (headers and libraries)
+
+## NUMA (Non-Uniform Memory Access) Support
+- libnuma1            # NUMA library for memory management
+
+## Installation Commands Used
+
+### 1. Build Tools Installation
+```bash
+apt update && apt install -y pkg-config cmake build-essential
+```
+
+### 2. Rust Installation (via rustup)
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+source ~/.cargo/env
+rustup default stable
+rustup update  # To ensure latest version (required for native-tls v0.2.14)
+```
+
+### 3. OpenSSL Development Libraries
+```bash
+apt update && apt install -y libssl-dev
+```
+
+### 4. NUMA Library
+```bash
+apt update && apt install -y libnuma1
+```
+
+## Issues Resolved
+
+1. **sentencepiece build failure**: Missing pkg-config and cmake
+2. **outlines-core build failure**: Missing Rust compiler
+3. **Rust version compatibility**: Updated from 1.75.0 to latest stable (1.80.0+)
+4. **openssl-sys build failure**: Missing OpenSSL development libraries
+5. **Runtime error**: Missing libnuma.so.1 shared library
+
+## Final Installation Command
+```bash
+uv pip install "sglang[all]>=0.4.8.post1"
+```
+
+## Notes
+- All packages were installed using Ubuntu/Debian package manager (apt)
+- Rust was installed using rustup for easier version management
+- The installation required both build-time and runtime dependencies
+- SGLang includes compiled components that need system-level libraries 
