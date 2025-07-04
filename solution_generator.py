@@ -5,6 +5,7 @@ import time
 from typing import List, Dict, Optional, Any, Union
 from dataclasses import dataclass
 import uuid
+import requests
 # from server.server import send_requests
 from utils import extract_python_code
 from transformers import AutoTokenizer
@@ -23,11 +24,11 @@ class SolutionGenerator:
         self.model_name = model_name
         self.max_retries = max_retries
         self.logger = logging.getLogger(__name__)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained("deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B")
         self.port = port
         
-        self.sampling_temp = 1.0
-        self.max_tokens = 1024
+        self.sampling_temp = 0.9
+        self.max_tokens = 8192
 
     def generate(self, problem, feedback: Optional[str] = None, num_solutions: int = 5) -> List[Solution]:
         """Generate N solutions for a problem"""
@@ -35,24 +36,29 @@ class SolutionGenerator:
         
         try:
             # Build prompt based on problem and feedback
-            prompt = self._build_solution_prompt(problem, feedback, num_solutions)
+            prompt = self._build_prompt(problem, feedback, True, True)
+            
             payload = self._prepare_payload(
                 prompt, 
                 num_solutions, 
                 self.sampling_temp,
-                self.max_token
+                self.max_tokens
             )
-            self._flush_server()
-            responses = self._send_request(url, payload).json
-            # responses = send_requests(prompt)
-
-            code_snippets = [extract_python_code(res['message']['content']) for res in responses]
+            
+            url = f"http://localhost:{self.port}/v1/completions"
+            responses = self._send_request(url, payload).json()
+             
+            responses = responses['choices']
+            
+            code_snippets = [extract_python_code(res['text']) for res in responses if extract_python_code(res['text'])]
+            
+            print(len(code_snippets))
 
             list_of_solution = [
                 Solution(
                     id=str(uuid.uuid4()),
                     prompt=prompt,
-                    generation=res['message']['content'],
+                    generation=res['text'],
                     metadata=res.get("metadata", {})
                 ) for code, res in zip(code_snippets, responses)
             ]
@@ -77,18 +83,18 @@ class SolutionGenerator:
         Present the code in ```python\nYour code\n```
         """
 
-        if feedback:
-            base_prompt += f"""
+        # if feedback:
+        #     base_prompt += f"""
             
-            Previous solution failed with feedback: {feedback['error_type']}
-            Error details: {feedback.get('details', '')}
+        #     Previous solution failed with feedback: {feedback['error_type']}
+        #     Error details: {feedback.get('details', '')}
             
-            Please provide a corrected solution that addresses this issue.
-            """
+        #     Please provide a corrected solution that addresses this issue.
+        #     """
 
         # return data
         messages = [
-            {"role": "user", "content": base_prompt}
+            {"role": "user", "content": base_prompt},
         ]
         return self.tokenizer.apply_chat_template(
             messages,
@@ -111,16 +117,17 @@ class SolutionGenerator:
         sampling_temp: float,
         max_tokens: int,
     ):
+        
         payload = {
-            "input_ids": prompt,
-            "sampling_params": {
-                "max_new_tokens": max_tokens,
-                "repetition_penalty": 1.05,
-                "top_p": 0.8,
-                "top_k": 20,
-                "temperature": sampling_temp,
-                "n": num_generations
-            }
+            "model": "israel-adewuyi/Astracode0.2",
+            "prompt": prompt,
+            "max_tokens": (max_tokens - 500),
+            "temperature": sampling_temp,
+            "top_p": 0.90,
+            "n": num_generations,
+            "stop": ["<|im_end|>"],
+            "top_k": 0,
+            "repetition_penalty": 1.0,
         }
 
         return payload
@@ -134,31 +141,6 @@ class SolutionGenerator:
             {test}
             """
         return formatted
-
-    # def inference(
-    #     self, 
-    #     prompt: List[int], 
-    #     stop_at_newline: bool,
-    #     eval_prompt: bool = False,
-    #     num_generations: int = None,
-    #     sampling_temp: float = 0.6,
-    #     max_tokens: int = 2048
-    # ):
-    #     try:
-    #         self.flush_server()
-    #         url = f"http://localhost:{self.port}/generate"
-    #         payload = self._prepare_payload(
-    #             prompt, 
-    #             num_generations, 
-    #             stop_at_newline, 
-    #             eval_prompt,
-    #             sampling_temp,
-    #             max_tokens=max_tokens
-    #         )
-    #         return self._send_request(url, payload).json()
-    #     except Exception as e:
-    #         self.shutdown
-    #         raise
         
     def _flush_server(self) -> None:
         """Flushes the server cache. Running this method before every inference."""

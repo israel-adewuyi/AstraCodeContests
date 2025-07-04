@@ -84,6 +84,12 @@ def extract_text_after_think(text):
     else:
         return ""
 
+def extract_test_cases(text):
+    """
+    Extracts the test cases from the given text.
+    """
+    return text.split("INPUT:\n")
+
 def extract_python_code(text):
     """
     Extracts the first Python code snippet from the given text.
