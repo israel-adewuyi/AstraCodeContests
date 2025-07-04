@@ -28,7 +28,7 @@ class SolutionGenerator:
         self.port = port
         
         self.sampling_temp = 0.9
-        self.max_tokens = 8192
+        self.max_tokens = 9218
 
     def generate(self, problem, feedback: Optional[str] = None, num_solutions: int = 5) -> List[Solution]:
         """Generate N solutions for a problem"""
@@ -42,7 +42,7 @@ class SolutionGenerator:
                 prompt, 
                 num_solutions, 
                 self.sampling_temp,
-                self.max_tokens
+                self.max_tokens - 1024
             )
             
             url = f"http://localhost:{self.port}/v1/completions"
@@ -121,7 +121,7 @@ class SolutionGenerator:
         payload = {
             "model": "israel-adewuyi/Astracode0.2",
             "prompt": prompt,
-            "max_tokens": (max_tokens - 500),
+            "max_tokens": max_tokens,
             "temperature": sampling_temp,
             "top_p": 0.90,
             "n": num_generations,
