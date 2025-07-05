@@ -26,6 +26,7 @@ with tab1:
         problem_id = st.text_input("Problem ID", value="A")
         examples_input = st.text_area("Examples (JSON format)", 
                                     value='[{"input": ["5\\n3 1 4 1 5\\n4"], "output": ["2"]}]')
+        num_solutions = st.number_input("Number of Solutions", min_value=1, max_value=1024, value=8)
         
         submitted = st.form_submit_button("Add Problem")
         
@@ -40,7 +41,8 @@ with tab1:
                     "output_specification": output_spec,
                     "contest_id": contest_id,
                     "problem_id": problem_id,
-                    "examples": examples
+                    "examples": examples,
+                    "num_solutions": num_solutions
                 }
                 
                 problem_key = st.session_state.contest_manager.add_problem(problem_data)
