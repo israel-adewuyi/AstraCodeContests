@@ -26,7 +26,7 @@ with tab1:
         problem_id = st.text_input("Problem ID", value="A")
         examples_input = st.text_area("Examples (JSON format)", 
                                     value='[{"input": ["5\\n3 1 4 1 5\\n4"], "output": ["2"]}]')
-        num_solutions = st.number_input("Number of Solutions", min_value=1, max_value=1024, value=8)
+        num_solutions = st.number_input("Number of Solutions", min_value=1, max_value=16384, value=8)
         
         submitted = st.form_submit_button("Add Problem")
         
