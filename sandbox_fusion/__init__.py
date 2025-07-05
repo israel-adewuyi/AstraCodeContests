@@ -32,7 +32,7 @@ def make_result(score: float, feedback: Union[str, Dict[str, Any]]) -> Dict[str,
         'feedback': feedback
     }
 
-def compute_score(sandbox_fusion_url, concurrent_semaphore, completion, test_cases, continuous=False, timeout=10) -> Dict[str, Union[float, str, dict, List]]:
+def compute_score(sandbox_fusion_url, concurrent_semaphore, completion, test_cases, continuous=False, timeout=5) -> Dict[str, Union[float, str, dict, List]]:
     """
     Computes the code score using the remote sandbox API.
 
