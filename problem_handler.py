@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass
-from utils import generate_hash, extract_text_after_think, get_inputs, extract_python_code
+from utils import generate_hash, extract_text_after_think, get_inputs, extract_python_code, extract_test_cases  
 from server.server import send_requests
 from prompt import PRIVATE_TESTS_SYS_PROMPT
 
@@ -62,19 +62,21 @@ class Problem:
         - Large inputs
         - Corner cases
         
+        Pay attention to how to use newline to separate the inputs. 
+        You can use the following as an example
+        INPUT:
+        {self.examples[0]["input"][0]}
+        Note that what you generate should be completely different from the example provided.
+        
+        Note that if a problem has multiple test cases, you can just set the number of test cases to 1 and generate the necessary content
+        
         Format each test case as:
         INPUT:
         <input test case>
-
-        Example
-        INPUT:
-        5
-        3 1 4 1 5
-        4
         """
         
         data = {
-            "model": "Qwen/Qwen3-1.7B",
+            "model": "Qwen/Qwen2.5-7B-Instruct",
             "messages": [
                 {"role": "system", "content": PRIVATE_TESTS_SYS_PROMPT},
                 {"role": "user", "content": prompt}
@@ -85,8 +87,7 @@ class Problem:
 
     def _parse_test_generation_response(self, response: str) -> List[TestCase]:
         """Parse model response into TestCase objects"""
-        response = extract_text_after_think(response)
-        test_cases = get_inputs(response)[:5]
+        test_cases = extract_test_cases(response)[1:6]
         self.logger.info(f"Test cases are {test_cases}")
         return test_cases
 
