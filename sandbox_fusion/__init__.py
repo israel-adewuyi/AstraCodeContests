@@ -72,6 +72,7 @@ def compute_score(sandbox_fusion_url, concurrent_semaphore, completion, test_cas
                     test_cases = test_cases[0]
                 else:
                     test_cases = json.loads(test_cases)[0]
+                logger.info(f"There are {len(test_cases)} private test cases to be evaluated.")
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse test_cases JSON: {e}")
                 return make_result(0.0, [{"error": "Invalid test_cases JSON format"}])
