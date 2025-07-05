@@ -6,6 +6,8 @@ from enum import Enum
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from progress_tracker import ProgressTracker
+import os
+from utils import extract_python_code, create_timestamp
 
 from problem_handler import Problem
 from solution_generator import SolutionGenerator
@@ -97,30 +99,82 @@ class ContestManager:
 
             self.logger.info("Solutions have been generated")
 
-            # # Step 3: Execute solutions on sample test cases
+            # --- Logging: Number of valid code snippets ---
+            valid_code_solutions = [sol for sol in solutions if extract_python_code(sol.generation)]
+            num_valid_code_snippets = len(valid_code_solutions)
+
+            # --- Step 3: Execute solutions on sample test cases ---
             valid_solutions = self.execution_engine.run_on_sample_tests(
                 problem, solutions
             )
+
+            num_passed_sample_tests = len(valid_solutions)
 
             if not valid_solutions:
                 self.logger.warning(f"No valid solutions for problem {problem_key}")
                 return {"status": "failed", "reason": "no_valid_solutions"}
 
-            # # Step 4: Execute on private test suite
+            # --- Step 4: Execute on private test suite ---
             private_results = self.execution_engine.run_on_private_tests(
                 problem, valid_solutions
             )
-            
             self.logger.info("Running solutions on private tests completed")
-            
             solutions_dict = {sol.id: sol for sol in solutions}
 
             # Step 5: Cluster and select best solution
             selected_solution = self.clustering_selector.select_best(
                 private_results
             )
-            
             selected_solution["generation"] = solutions_dict[selected_solution["selected_solution_id"]].generation
+
+            # --- Logging: Cluster info ---
+            # Get all clusters and their solution ids
+            clusters = self.clustering_selector._cluster_solutions(private_results)
+            cluster_info = {
+                "num_clusters": len(clusters),
+                "clusters": [
+                    {
+                        "cluster_id": cluster.id,
+                        "solution_ids": cluster.solutions
+                    } for cluster in clusters
+                ]
+            }
+
+            # --- Logging: All solutions with id and generation/code snippet ---
+            solutions_log = [
+                {
+                    "solution_id": sol.id,
+                    "generation": sol.generation,
+                    "code_snippet": extract_python_code(sol.generation)
+                } for sol in solutions
+            ]
+
+            # --- Compose log entry ---
+            log_entry = {
+                "problem_key": problem.key,
+                "problem_id": getattr(problem, "problem_id", None),
+                "contest_id": getattr(problem, "contest_id", None),
+                "timestamp": create_timestamp(),
+                "num_valid_code_snippets": num_valid_code_snippets,
+                "num_passed_sample_tests": num_passed_sample_tests,
+                "solution_ids_with_valid_code": [sol.id for sol in valid_code_solutions],
+                "solution_ids_passed_sample_tests": [sol.id for sol in valid_solutions],
+                "clustering": cluster_info,
+                "solutions": solutions_log
+            }
+
+            # --- Write log entry to problem_logs/problem_logs.json ---
+            log_dir = os.path.join(os.path.dirname(__file__), "problem_logs")
+            os.makedirs(log_dir, exist_ok=True)
+            log_path = os.path.join(log_dir, "problem_logs.json")
+            if os.path.exists(log_path):
+                with open(log_path, "r") as f:
+                    logs = json.load(f)
+            else:
+                logs = []
+            logs.append(log_entry)
+            with open(log_path, "w") as f:
+                json.dump(logs, f, indent=2)
 
             self.selected_solutions[problem_key] = selected_solution
             self.solutions[problem_key] = solutions
