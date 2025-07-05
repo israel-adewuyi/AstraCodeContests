@@ -1,6 +1,0 @@
-model: Qwen/Qwen3-1.7B
-host: "0.0.0.0"
-port: 63455
-uvicorn-log-level: "info"
-max_model_len: 4096
-gpu_memory_utilization: 0.7
