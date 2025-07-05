@@ -53,6 +53,7 @@ class SolutionGenerator:
             code_snippets = [extract_python_code(res['text']) for res in responses if extract_python_code(res['text'])]
             
             print(len(code_snippets))
+            self.logger.info(f"{len(code_snippets)} solutions generated for problem {problem.key}")
 
             list_of_solution = [
                 Solution(
