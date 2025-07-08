@@ -67,6 +67,7 @@ with tab2:
                     st.write(f"**Problem ID:** {problem.problem_id}")
                     st.write("**Examples:**")
                     st.json(problem.examples)
+                    st.write(f"**Number of solutions:** {problem.num_solutions}")
                     
                     if st.button(f"Solve Problem {problem_key}", key=f"solve_{problem_key}"):
                         with st.spinner(f"Solving problem {problem_key}..."):
@@ -98,6 +99,40 @@ with tab2:
                 if st.button("❌", key=f"delete_{problem_key}"):
                     st.session_state.contest_manager.delete_problem(problem_key)
                     st.rerun()
+                # Add Edit button
+                if st.button("✏️", key=f"edit_{problem_key}"):
+                    st.session_state[f"edit_modal_{problem_key}"] = True
+            # Show modal if edit button was clicked
+            if st.session_state.get(f"edit_modal_{problem_key}", False):
+                with st.expander("Edit Problem ...", expanded=True):
+                    edit_statement = st.text_area("Statement", value=problem.statement, key=f"edit_statement_{problem_key}")
+                    edit_input_spec = st.text_area("Input Specification", value=problem.input_specification, key=f"edit_input_spec_{problem_key}")
+                    edit_output_spec = st.text_area("Output Specification", value=problem.output_specification, key=f"edit_output_spec_{problem_key}")
+                    edit_examples = st.text_area("Examples (JSON format)", value=json.dumps(problem.examples, indent=2), key=f"edit_examples_{problem_key}")
+                    edit_num_solutions = st.number_input("Number of Solutions", min_value=1, max_value=16384, value=problem.num_solutions, key=f"edit_num_solutions_{problem_key}")
+                    submitted_edit = st.button("Save Changes", key=f"submit_edit_{problem_key}")
+                    cancel_edit = st.button("Cancel", key=f"cancel_edit_{problem_key}")
+                    if submitted_edit:
+                        try:
+                            new_examples = json.loads(edit_examples)
+                            updated_data = {
+                                "statement": edit_statement,
+                                "input_specification": edit_input_spec,
+                                "output_specification": edit_output_spec,
+                                "examples": new_examples,
+                                "num_solutions": edit_num_solutions
+                            }
+                            st.session_state.contest_manager.update_problem(problem_key, updated_data)
+                            st.success("Problem updated!")
+                            st.session_state[f"edit_modal_{problem_key}"] = False
+                            st.rerun()
+                        except json.JSONDecodeError:
+                            st.error("Invalid JSON format in examples")
+                        except Exception as e:
+                            st.error(f"Error updating problem: {str(e)}")
+                    if cancel_edit:
+                        st.session_state[f"edit_modal_{problem_key}"] = False
+                        st.rerun()
     else:
         st.info("No problems added yet.")
         

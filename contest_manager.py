@@ -74,6 +74,18 @@ class ContestManager:
         self.logger.info(f"Added problem {problem.key}")
         return problem.key
 
+    def update_problem(self, problem_key: str, updated_data: Dict) -> bool:
+        """Update fields of an existing problem."""
+        if problem_key not in self.problems:
+            self.logger.warning(f"Attempted to update non-existent problem {problem_key}")
+            return False
+        problem = self.problems[problem_key]
+        for key, value in updated_data.items():
+            if hasattr(problem, key):
+                setattr(problem, key, value)
+        self.logger.info(f"Updated problem {problem_key} with {updated_data}")
+        return True
+
     def solve_problem(self, problem_key: str) -> Dict:
         """Main pipeline for solving a single problem"""
         if problem_key not in self.problems:
@@ -151,7 +163,6 @@ class ContestManager:
                 "num_passed_sample_tests": num_passed_sample_tests,
                 "solution_ids_with_valid_code": [sol.id for sol in valid_code_solutions],
                 "solution_ids_passed_sample_tests": [sol.id for sol in valid_solutions],
-                "clustering": cluster_info,
                 "solutions": solutions_log,
                 "selected_solution_log": selected_solution
             }
@@ -296,7 +307,8 @@ Among the N races, how many races can a K-year-old horse participate in?""",
         "output_specification": "Output the answer as an integer.",
         "contest_id": 410,
         "problem_id": "A",
-        "examples": [{"input" : ["5\n3 1 4 1 5\n4"], "output" : ["2"]}]
+        "examples": [{"input" : ["5\n3 1 4 1 5\n4"], "output" : ["2"]}],
+        "num_solutions": 8,
     }
 
     problem_key = manager.add_problem(problem_data)
