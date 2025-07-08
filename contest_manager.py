@@ -61,6 +61,11 @@ class ContestManager:
         self.executor = ThreadPoolExecutor(max_workers=4)  # or configurable
         self.futures = {}
 
+        # Set up per-instance log file path
+        log_dir = os.path.join(os.path.dirname(__file__), "problem_logs")
+        os.makedirs(log_dir, exist_ok=True)
+        self.log_path = os.path.join(log_dir, f"contest_{self.config.contest_id}_logs.json")
+
     def add_problem(self, problem_data: Dict) -> str:
         """Add a new problem to the contest"""
         problem = Problem(**problem_data)
@@ -88,7 +93,7 @@ class ContestManager:
                 
             assert len(private_tests.test_cases) > 0
 
-            # # Step 2: Generate N solutions
+            # Step 2: Generate N solutions
             num_solutions = getattr(problem, 'num_solutions', None)
             if num_solutions is None:
                 num_solutions = self.config.num_solutions_per_problem
@@ -99,11 +104,11 @@ class ContestManager:
 
             self.logger.info("Solutions have been generated")
 
-            # --- Logging: Number of valid code snippets ---
+            # Logging: Number of valid code snippets ---
             valid_code_solutions = [sol for sol in solutions if extract_python_code(sol.generation)]
             num_valid_code_snippets = len(valid_code_solutions)
 
-            # --- Step 3: Execute solutions on sample test cases ---
+            # Step 3: Execute solutions on sample test cases ---
             valid_solutions = self.execution_engine.run_on_sample_tests(
                 problem, solutions
             )
@@ -114,7 +119,7 @@ class ContestManager:
                 self.logger.warning(f"No valid solutions for problem {problem_key}")
                 return {"status": "failed", "reason": "no_valid_solutions"}
 
-            # --- Step 4: Execute on private test suite ---
+            # Step 4: Execute on private test suite ---
             private_results = self.execution_engine.run_on_private_tests(
                 problem, valid_solutions
             )
@@ -127,20 +132,7 @@ class ContestManager:
             )
             selected_solution["generation"] = solutions_dict[selected_solution["selected_solution_id"]].generation
 
-            # --- Logging: Cluster info ---
-            # Get all clusters and their solution ids
-            clusters = self.clustering_selector._cluster_solutions(private_results)
-            cluster_info = {
-                "num_clusters": len(clusters),
-                "clusters": [
-                    {
-                        "cluster_id": cluster.id,
-                        "solution_ids": cluster.solutions
-                    } for cluster in clusters
-                ]
-            }
-
-            # --- Logging: All solutions with id and generation/code snippet ---
+            # Logging: All solutions with id and generation/code snippet ---
             solutions_log = [
                 {
                     "solution_id": sol.id,
@@ -154,28 +146,18 @@ class ContestManager:
                 "problem_key": problem.key,
                 "problem_id": getattr(problem, "problem_id", None),
                 "contest_id": getattr(problem, "contest_id", None),
-                "timestamp": create_timestamp(),
                 "initial_num_generations": problem.num_solutions,
                 "num_valid_code_snippets": num_valid_code_snippets,
                 "num_passed_sample_tests": num_passed_sample_tests,
                 "solution_ids_with_valid_code": [sol.id for sol in valid_code_solutions],
                 "solution_ids_passed_sample_tests": [sol.id for sol in valid_solutions],
                 "clustering": cluster_info,
-                "solutions": solutions_log
+                "solutions": solutions_log,
+                "selected_solution_log": selected_solution
             }
 
             # --- Write log entry to problem_logs/problem_logs.json ---
-            log_dir = os.path.join(os.path.dirname(__file__), "problem_logs")
-            os.makedirs(log_dir, exist_ok=True)
-            log_path = os.path.join(log_dir, "problem_logs.json")
-            if os.path.exists(log_path):
-                with open(log_path, "r") as f:
-                    logs = json.load(f)
-            else:
-                logs = []
-            logs.append(log_entry)
-            with open(log_path, "w") as f:
-                json.dump(logs, f, indent=2)
+            self._log_problem_result(log_entry)
 
             self.selected_solutions[problem_key] = selected_solution
             self.solutions[problem_key] = solutions
@@ -191,6 +173,20 @@ class ContestManager:
         except Exception as e:
             self.logger.error(f"Error solving problem {problem_key}: {str(e)}")
             return {"status": "failed", "reason": str(e)}
+
+    def _log_problem_result(self, log_entry):
+        """Write a log entry to the per-contest log file."""
+        if os.path.exists(self.log_path):
+            with open(self.log_path, "r") as f:
+                try:
+                    logs = json.load(f)
+                except json.JSONDecodeError:
+                    logs = []
+        else:
+            logs = []
+        logs.append(log_entry)
+        with open(self.log_path, "w") as f:
+            json.dump(logs, f, indent=2)
 
     def handle_feedback(self, problem_key: str, solution_id: str, 
                        feedback: Dict) -> Dict:
