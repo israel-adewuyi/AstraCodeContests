@@ -155,6 +155,7 @@ class ContestManager:
                 "problem_id": getattr(problem, "problem_id", None),
                 "contest_id": getattr(problem, "contest_id", None),
                 "timestamp": create_timestamp(),
+                "initial_num_generations": problem.num_solutions,
                 "num_valid_code_snippets": num_valid_code_snippets,
                 "num_passed_sample_tests": num_passed_sample_tests,
                 "solution_ids_with_valid_code": [sol.id for sol in valid_code_solutions],
