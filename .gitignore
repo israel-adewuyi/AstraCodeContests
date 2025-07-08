@@ -3,3 +3,4 @@ sandbox_fusion/__pycache__
 sandbox_fusion/.ipynb_checkpoints
 server/.ipynb_checkpoints
 __pycache__/
+vllm_benchmark/

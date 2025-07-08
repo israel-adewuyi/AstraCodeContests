@@ -120,11 +120,11 @@ class SolutionGenerator:
     ):
         
         payload = {
-            "model": "israel-adewuyi/Astracode0.2",
+            "model": "israel-adewuyi/Astracode-1.5B",
             "prompt": prompt,
             "max_tokens": max_tokens,
             "temperature": sampling_temp,
-            "top_p": 0.90,
+            "top_p": 0.95,
             "n": num_generations,
             "stop": ["<|im_end|>"],
             "top_k": 0,
