@@ -11,7 +11,7 @@ if 'contest_manager' not in st.session_state:
     st.session_state.contest_manager = ContestManager(config)
 
 # Streamlit app
-st.title("Contest Manager Interface")
+st.title("AstraContest Interface")
 
 # Create tabs for adding problems and viewing problems
 tab1, tab2 = st.tabs(["Add Problem", "View Problems"])
