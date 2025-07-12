@@ -102,7 +102,8 @@ class ContestManager:
                 private_tests = problem.generate_private_tests(self.tokenizer)
             else:
                 self.logger.info(f"Reusing previously generated private tests for problem {problem_key}")
-                
+                private_tests = problem.get_private_tests()
+
             assert len(private_tests.test_cases) > 0
 
             # Step 2: Generate N solutions
