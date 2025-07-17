@@ -1,6 +1,12 @@
 sandbox_fusion/__pycache__
-sandbox_fusion/__pycache__
 sandbox_fusion/.ipynb_checkpoints
 server/.ipynb_checkpoints
 __pycache__/
+*/__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
 vllm_benchmark/
+tests/__pycache__/
