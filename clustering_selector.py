@@ -33,6 +33,12 @@ class ClusteringSelector:
         
         self.logger.info(f"Selected solution {selected_solution_id} from cluster of size {largest_cluster.size}")
         
+        solution_to_cluster_map = {
+            solution_id: cluster.id
+            for cluster in clusters
+            for solution_id in cluster.solutions
+        }
+
         return {
             "selected_solution_id": selected_solution_id,
             "cluster_size": largest_cluster.size,
@@ -40,7 +46,8 @@ class ClusteringSelector:
             "cluster_info": {
                 "id": largest_cluster.id,
                 "representative_output": largest_cluster.representative_output
-            }
+            },
+            "solution_to_cluster_map": solution_to_cluster_map
         }
     
     def _cluster_solutions(self, solution_outputs: Dict[str, List[str]]) -> List[Cluster]:

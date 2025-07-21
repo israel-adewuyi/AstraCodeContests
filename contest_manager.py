@@ -143,14 +143,20 @@ class ContestManager:
             selected_solution = self.clustering_selector.select_best(
                 private_results
             )
-            selected_solution["generation"] = solutions_dict[selected_solution["selected_solution_id"]].generation
+            solution_to_cluster_map = selected_solution.get("solution_to_cluster_map", {})
+
+            if selected_solution.get("selected_solution_id"):
+                selected_solution["generation"] = solutions_dict[selected_solution["selected_solution_id"]].generation
+            else:
+                selected_solution["generation"] = None
 
             # Logging: All solutions with id and generation/code snippet ---
             solutions_log = [
                 {
                     "solution_id": sol.id,
                     "generation": sol.generation,
-                    "code_snippet": extract_python_code(sol.generation)
+                    "code_snippet": extract_python_code(sol.generation),
+                    "cluster_id": solution_to_cluster_map.get(sol.id)
                 } for sol in solutions
             ]
 
