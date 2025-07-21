@@ -49,28 +49,73 @@ class Problem:
 
     def _build_test_generation_prompt(self) -> dict:
         """Build prompt for test case generation"""
-
+        
         prompt = f"""
-        Generate comprehensive test cases for the following competitive programming problem:
-        
-        Problem Statement: {self.statement}
-        Input Specification: {self.input_specification}
-        
-        Generate 10-15 diverse test cases including:
-        - Edge cases
-        - Boundary conditions
-        - Large inputs
-        - Corner cases
-        
-        Pay attention to how to use newline to separate the inputs. 
-        You can use the following as an example
-        INPUT:
-        {self.examples[0]["input"][0]}
-        Note that what you generate should be completely different from the example provided.
-        
-        Note that if a problem has multiple test cases, you can just set the number of test cases to 1 and generate the necessary content
-        
-        Format each test case as:
+        You are tasked with generating comprehensive test cases for a competitive programming problem to create a private test suite. The problem may have either a single test case or multiple test cases, where the first line specifies `T` (the number of test cases) followed by `T` test cases. Your task is to generate 10-15 diverse test cases, including edge cases, boundary conditions, large inputs, and corner cases.
+
+        Instructions:
+        1. Input Structure:
+        - For single test case problems, generate the input directly without a `T` line.
+        - For multiple test case problems (e.g., first line contains `T`), set `T=1` for simplicity and generate the test case content accordingly.
+        2. Diversity: Ensure test cases cover edge cases (e.g., minimum/maximum values), boundary conditions, large inputs (within constraints), and corner cases (unusual but valid inputs).
+        3. Formatting:
+        - Use newlines to separate inputs as required by the problem.
+        - Format each test case as:
+            INPUT:
+            <input test case>
+        4. Constraints: Adhere to the problem's input specification (e.g., value ranges, array sizes).
+        5. Avoid Example Inputs: Generated test cases must be completely different from the example provided.
+
+        Problem Details:
+        - Problem Statement: {self.statement}
+        - Input Specification: {self.input_specification}
+
+        Format examples:
+
+        1. Single Test Case Problem:
+        - Problem Statement: Given an integer `n`, compute the sum of integers from 1 to `n`.
+        - Input Specification: A single integer `n` (1 ≤ n ≤ 10^5).
+        - Example Input: 5
+        - Generated Test Cases:
+            INPUT:
+            1
+            INPUT:
+            100000
+            INPUT:
+            42
+            INPUT:
+            99999
+
+        2. Multiple Test Case Problem:
+        - Problem Statement: Given `T` test cases, for each test case, given an integer `n`, compute the sum of integers from 1 to `n`.
+        - Input Specification: The first line contains `T` (1 ≤ T ≤ 100). Each of the next `T` lines contains an integer `n` (1 ≤ n ≤ 10^5).
+        - Example Input: 
+            2
+            3
+            4
+        - Generated Test Cases (with T=1 for simplicity):
+            INPUT:
+            1
+            1
+            INPUT:
+            1
+            100000
+            INPUT:
+            1
+            50000
+            INPUT:
+            1
+            99999 
+
+        Examples for this problem:
+        - Example Input: {self.examples[0]["input"][0]}
+
+        Task:
+        Generate 10-15 diverse test cases for the given problem, following the input structure (single or multiple test cases as specified). 
+        Ensure each test case is formatted correctly, adheres to the input specification, and is distinct from the example input.
+
+        Output:
+        Provide the test cases in the format:
         INPUT:
         <input test case>
         """
