@@ -1,35 +1,61 @@
 # AstraCodeContests
 
-This repository contains tools for managing and benchmarking AI coding contests.
+Welcome to the AstraCodeContests! Runpod.io is what I used as the dev environment. 
 
-## Directory Structure
+## Prerequisites
+- Linux-based system (e.g., Ubuntu)
+- `git`, and `bash` installed
 
-- `vllm_benchmark/` - vLLM server benchmarking tools with concurrent request support
-- `server/` - Server components
-- `sandbox_fusion/` - Sandbox execution environment
-- `tests/` - Unit tests for the codebase
-- Other contest management files
+## Setup Instructions
 
-## vLLM Benchmarking
-
-For comprehensive vLLM server benchmarking tools, see the `vllm_benchmark/` directory:
+### 1. Clone the Repository
 
 ```bash
-cd vllm_benchmark/
-python run_benchmarks.py --scenarios
+git clone https://github.com/israel-adewuyi/AstraCodeContests.git
+cd AstraCodeContests
 ```
 
-The benchmarking tools support:
-- Concurrent request processing
-- Multiple test scenarios
-- Comprehensive metrics collection
-- CSV and JSON output formats
+### 2. Run the Setup Script
+The `setup.sh` script in the repository root automates the installation of all dependencies, including the `SandboxFusion` repository, Miniconda, Python environments, and required packages.
 
-See `vllm_benchmark/BENCHMARK_README.md` for detailed documentation.
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+## Running 
+### SandboxFusion
+From `AstraCodeContests` dir, run 
+```bash
+source ../miniconda3/etc/profile.d/conda.sh
+conda activate sandbox-runtime
+cd ../SandboxFusion/
+make run-online
+```
+
+### Spinning Up vllm to run inference for a CP problem
+- Astracode1.5B to solve the problem
+```bash
+source ../astracode/bin/activate
+vllm serve --config server/config.yaml
+```
+
+- Qwen2.5-7B to generate private test suite
+```bash
+source ../astracode/bin/activate
+vllm serve --config server/test_config.yaml
+```
+
+### Streamlit
+```bash
+source ../astracode/bin/activate
+streamlit run app.py
+```
 
 ## Testing
 
-The repository includes a comprehensive test suite to ensure code quality and reliability. To run the tests:
+The repository includes a test suite to ensure code quality and reliability. To run the tests:
 
 ```bash
 python run_tests.py
@@ -39,12 +65,3 @@ The test suite covers:
 - Utility functions (`test_utils.py`)
 - Progress tracking (`test_progress_tracker.py`)
 - Clustering and solution selection (`test_clustering_selector.py`)
-
-### Adding New Tests
-
-When adding new functionality, please also add corresponding tests. Follow the existing test structure:
-
-1. Create a new test file in the `tests/` directory
-2. Use the `unittest` framework
-3. Ensure tests are isolated and don't depend on external state
-4. Run the tests to verify they pass before submitting changes
